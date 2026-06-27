@@ -100,7 +100,18 @@ export default async function ChallengesPage() {
                   </span>
                   <VideoUploader
                     challengeId={c.id}
+                    kind="counselor"
                     currentValue={c.counselor_video_url}
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between border-t border-ink/10 pt-2">
+                  <span className="text-xs font-medium text-ink/50">
+                    Wrap-up video 🏁
+                  </span>
+                  <VideoUploader
+                    challengeId={c.id}
+                    kind="recap"
+                    currentValue={c.recap_video_url}
                   />
                 </div>
               </li>

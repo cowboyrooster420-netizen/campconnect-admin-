@@ -45,6 +45,7 @@ export interface SeasonChallenge {
   template_id: string;
   sequence_order: number;
   counselor_video_url: string | null;
+  recap_video_url: string | null;
   release_at: string | null;
   due_at: string | null;
   status: SeasonChallengeStatus;
@@ -100,6 +101,27 @@ export function describeBadgeCriteria(c: BadgeCriteria | null): string | null {
       return "Auto: on signing up";
   }
 }
+
+export type FeedItemType = "challenge" | "wrap_up" | "memory" | "announcement";
+
+export interface FeedItem {
+  id: string;
+  camp_id: string;
+  type: FeedItemType;
+  title: string;
+  caption: string | null;
+  media_path: string | null;
+  season_challenge_id: string | null;
+  publish_at: string;
+  created_at: string;
+}
+
+export const FEED_TYPE_META: Record<FeedItemType, { label: string; emoji: string }> = {
+  challenge: { label: "Challenge", emoji: "🎬" },
+  wrap_up: { label: "Wrap-up", emoji: "🏁" },
+  memory: { label: "Camp memory", emoji: "📼" },
+  announcement: { label: "Announcement", emoji: "📣" },
+};
 
 export const CATEGORY_META: Record<
   ChallengeCategory,

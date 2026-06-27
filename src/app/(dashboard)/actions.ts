@@ -84,35 +84,68 @@ export async function addChallengeAction(formData: FormData) {
 }
 
 /**
- * Save the counselor video for a challenge. `value` is either:
- *   - a storage path in the `counselor-videos` bucket (uploaded from the client), or
- *   - a full external URL (e.g. a YouTube/Vimeo link the operator pasted), or
- *   - null to clear it.
- * The iOS app resolves a bare path into a signed URL at view time.
+ * Save a challenge's intro ('counselor') or wrap-up ('recap') video. `value` is a
+ * storage path in the `counselor-videos` bucket, an external URL, or null to clear.
+ * Also syncs a shadow feed_item so the video shows in the camp feed.
  */
-export async function setCounselorVideo(
+export async function setChallengeVideo(
   challengeId: string,
+  kind: "counselor" | "recap",
   value: string | null
 ) {
   const ctx = await getOperatorContext();
-  if (!ctx) throw new Error("Not authorized");
+  if (!ctx?.camp) throw new Error("Not authorized");
   const supabase = await createClient();
 
+  const column = kind === "counselor" ? "counselor_video_url" : "recap_video_url";
   const { error } = await supabase
     .from("season_challenges")
-    .update({ counselor_video_url: value })
+    .update({ [column]: value })
     .eq("id", challengeId);
   if (error) throw new Error(error.message);
 
+  // Sync the shadow feed entry (type 'challenge' for intro, 'wrap_up' for recap).
+  const feedType = kind === "counselor" ? "challenge" : "wrap_up";
+  if (value) {
+    const { data: ch } = await supabase
+      .from("season_challenges")
+      .select("template:challenge_templates(title)")
+      .eq("id", challengeId)
+      .single();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const title = (ch as any)?.template?.title ?? "Challenge";
+    await supabase.from("feed_items").upsert(
+      {
+        camp_id: ctx.camp.id,
+        type: feedType,
+        title,
+        caption: kind === "counselor" ? "New challenge unlocked" : "Challenge wrap-up",
+        media_path: value,
+        season_challenge_id: challengeId,
+        created_by: ctx.userId,
+        publish_at: new Date().toISOString(),
+      },
+      { onConflict: "season_challenge_id,type" }
+    );
+  } else {
+    await supabase
+      .from("feed_items")
+      .delete()
+      .eq("season_challenge_id", challengeId)
+      .eq("type", feedType);
+  }
+
   revalidatePath("/challenges");
+  revalidatePath("/feed");
 }
 
 /** Form-action wrapper for pasting an external video URL. */
-export async function setCounselorVideoUrlAction(formData: FormData) {
+export async function setChallengeVideoUrlAction(formData: FormData) {
   const challengeId = String(formData.get("challengeId") ?? "");
+  const kind = (String(formData.get("kind") ?? "counselor") as "counselor" | "recap");
   const url = String(formData.get("videoUrl") ?? "").trim();
   if (!challengeId) return;
-  await setCounselorVideo(challengeId, url || null);
+  await setChallengeVideo(challengeId, kind, url || null);
 }
 
 export async function setChallengeStatus(
@@ -135,6 +168,41 @@ export async function setChallengeStatus(
 
   revalidatePath("/challenges");
   revalidatePath("/");
+}
+
+/** Create a feed item (camp memory or announcement). Schedules via publishAt. */
+export async function createFeedItem(input: {
+  type: "memory" | "announcement";
+  title: string;
+  caption: string | null;
+  mediaPath: string | null;
+  publishAt: string;
+}) {
+  const ctx = await getOperatorContext();
+  if (!ctx?.camp) throw new Error("No camp assigned");
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("feed_items").insert({
+    camp_id: ctx.camp.id,
+    type: input.type,
+    title: input.title,
+    caption: input.caption,
+    media_path: input.mediaPath,
+    publish_at: input.publishAt,
+    created_by: ctx.userId,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/feed");
+}
+
+export async function deleteFeedItem(id: string) {
+  const ctx = await getOperatorContext();
+  if (!ctx) throw new Error("Not authorized");
+  const supabase = await createClient();
+  const { error } = await supabase.from("feed_items").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/feed");
 }
 
 /** Manually award a badge to a camper. */

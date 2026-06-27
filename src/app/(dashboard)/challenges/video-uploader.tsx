@@ -3,14 +3,16 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { setCounselorVideo } from "@/app/(dashboard)/actions";
+import { setChallengeVideo } from "@/app/(dashboard)/actions";
 
 export default function VideoUploader({
   challengeId,
   currentValue,
+  kind = "counselor",
 }: {
   challengeId: string;
   currentValue: string | null;
+  kind?: "counselor" | "recap";
 }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -29,7 +31,8 @@ export default function VideoUploader({
     setError(null);
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "mov";
-    const path = `${challengeId}.${ext}`;
+    // Namespace recap videos so they don't collide with the intro video.
+    const path = kind === "recap" ? `recap/${challengeId}.${ext}` : `${challengeId}.${ext}`;
 
     const supabase = createClient();
     const { error: upErr } = await supabase.storage
@@ -43,7 +46,7 @@ export default function VideoUploader({
     }
 
     try {
-      await setCounselorVideo(challengeId, path);
+      await setChallengeVideo(challengeId, kind, path);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
@@ -58,7 +61,7 @@ export default function VideoUploader({
     setBusy(true);
     setError(null);
     try {
-      await setCounselorVideo(challengeId, url.trim());
+      await setChallengeVideo(challengeId, kind, url.trim());
       setShowUrl(false);
       setUrl("");
       router.refresh();
@@ -73,7 +76,7 @@ export default function VideoUploader({
     setBusy(true);
     setError(null);
     try {
-      await setCounselorVideo(challengeId, null);
+      await setChallengeVideo(challengeId, kind, null);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to clear");

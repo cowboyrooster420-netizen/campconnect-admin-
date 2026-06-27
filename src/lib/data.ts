@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   Badge,
   ChallengeTemplate,
+  FeedItem,
   Profile,
   SeasonChallenge,
   Submission,
@@ -92,6 +93,16 @@ export async function getBadges(): Promise<Badge[]> {
     .select("*")
     .order("created_at", { ascending: true });
   return (data as Badge[]) ?? [];
+}
+
+/** All feed items in the camp (operators see scheduled/future items too). */
+export async function getFeedItems(): Promise<FeedItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("feed_items")
+    .select("*")
+    .order("publish_at", { ascending: false });
+  return (data as FeedItem[]) ?? [];
 }
 
 export async function getCampers(): Promise<Profile[]> {
