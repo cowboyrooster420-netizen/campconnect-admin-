@@ -71,12 +71,17 @@ Mutations are **server actions** (`src/app/(dashboard)/actions.ts`) — approve/
 reject, add/release/close challenges, award badges — each re-checks operator
 role server-side.
 
+## Done
+
+- **Counselor video upload** — per-challenge upload to Storage or external URL.
+- **Auto-badge engine** — a DB trigger (`supabase/auto_badges.sql`) credits points
+  and awards rule-based badges (`badges.criteria`) on approval. The Badges page
+  shows each badge's auto-rule; manual award is still available.
+
 ## Roadmap
 
-1. **Auto-badge engine** — DB trigger to award badges/points on approval
-   (currently approval credits points; badges are manual).
-2. **Parental consent + camper invites** — the COPPA flow referenced on the
+1. **Parental consent + camper invites** — the COPPA flow referenced on the
    Campers page. **Required before piloting with real kids.**
-3. **Counselor video upload** — operators upload the summer-captured videos that
-   attach to each season challenge (`counselor_video_url`).
-4. **Multi-camp** — operator switching if one operator manages several camps.
+2. **Operator-defined badges** — a UI to create badges + pick a `criteria` rule
+   (the engine is already data-driven; just needs a form).
+3. **Multi-camp** — operator switching if one operator manages several camps.

@@ -4,20 +4,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getOperatorContext } from "@/lib/auth";
 
-/** Approve a submission and credit the camper with the challenge's points. */
+/**
+ * Approve a submission. Crediting points and awarding auto-badges is handled by
+ * the `on_submission_approved` database trigger (see supabase/auto_badges.sql),
+ * so it stays consistent regardless of who approves.
+ */
 export async function approveSubmission(submissionId: string) {
   const ctx = await getOperatorContext();
   if (!ctx) throw new Error("Not authorized");
   const supabase = await createClient();
-
-  // Load the submission + its template points and the camper.
-  const { data: submission } = await supabase
-    .from("submissions")
-    .select(
-      "id, camper_id, season_challenge:season_challenges(template:challenge_templates(points))"
-    )
-    .eq("id", submissionId)
-    .single();
 
   const { error } = await supabase
     .from("submissions")
@@ -29,23 +24,9 @@ export async function approveSubmission(submissionId: string) {
     .eq("id", submissionId);
   if (error) throw new Error(error.message);
 
-  // Credit points (read-modify-write; fine for a single-operator MVP).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const points: number =
-    (submission as any)?.season_challenge?.template?.points ?? 0;
-  if (submission?.camper_id && points > 0) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("total_points")
-      .eq("id", submission.camper_id)
-      .single();
-    await supabase
-      .from("profiles")
-      .update({ total_points: (profile?.total_points ?? 0) + points })
-      .eq("id", submission.camper_id);
-  }
-
   revalidatePath("/review");
+  revalidatePath("/badges");
+  revalidatePath("/campers");
   revalidatePath("/");
 }
 

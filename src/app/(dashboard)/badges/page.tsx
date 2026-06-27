@@ -1,4 +1,5 @@
 import { getBadges, getCampers } from "@/lib/data";
+import { describeBadgeCriteria } from "@/lib/types";
 import { awardBadgeAction } from "@/app/(dashboard)/actions";
 
 export default async function BadgesPage() {
@@ -8,8 +9,9 @@ export default async function BadgesPage() {
     <div className="mx-auto max-w-4xl">
       <h1 className="mb-1 text-2xl font-bold text-ink">Badges</h1>
       <p className="mb-6 text-sm text-ink/60">
-        Recognize campers. (An auto-award engine is on the roadmap — for now,
-        award manually.)
+        Badges with an <span className="font-medium text-pine">Auto</span> rule are
+        granted automatically when submissions are approved. You can also award
+        any badge manually below.
       </p>
 
       {badges.length === 0 ? (
@@ -29,6 +31,21 @@ export default async function BadgesPage() {
                   <p className="text-xs text-ink/50">{b.description}</p>
                 </div>
               </div>
+
+              {(() => {
+                const rule = describeBadgeCriteria(b.criteria);
+                return (
+                  <span
+                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                      rule
+                        ? "bg-pine/10 text-pine"
+                        : "bg-ink/5 text-ink/50"
+                    }`}
+                  >
+                    {rule ?? "Manual award"}
+                  </span>
+                );
+              })()}
 
               {campers.length > 0 ? (
                 <form action={awardBadgeAction} className="mt-3 flex gap-2">

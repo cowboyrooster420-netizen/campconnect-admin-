@@ -67,12 +67,30 @@ export interface Submission {
   };
 }
 
+export type BadgeCriteria =
+  | { type: "first_approval" }
+  | { type: "category_count"; category: ChallengeCategory; count: number };
+
 export interface Badge {
   id: string;
   camp_id: string | null;
   name: string;
   description: string;
   icon: string;
+  criteria: BadgeCriteria | null;
+}
+
+/** Plain-English summary of a badge's auto-award rule (or null if manual). */
+export function describeBadgeCriteria(c: BadgeCriteria | null): string | null {
+  if (!c) return null;
+  switch (c.type) {
+    case "first_approval":
+      return "Auto: first approved challenge";
+    case "category_count":
+      return `Auto: ${c.count} approved ${CATEGORY_META[c.category].label.toLowerCase()} challenge${
+        c.count === 1 ? "" : "s"
+      }`;
+  }
 }
 
 export const CATEGORY_META: Record<
