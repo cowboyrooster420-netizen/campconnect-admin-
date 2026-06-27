@@ -95,6 +95,29 @@ export async function getBadges(): Promise<Badge[]> {
   return (data as Badge[]) ?? [];
 }
 
+/** A single challenge (with template) for the editor. */
+export async function getChallenge(id: string): Promise<SeasonChallenge | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("season_challenges")
+    .select("*, template:challenge_templates(*)")
+    .eq("id", id)
+    .maybeSingle();
+  return (data as SeasonChallenge) ?? null;
+}
+
+/** A challenge's nudges, ordered by their day-offset. */
+export async function getChallengeNudges(id: string): Promise<FeedItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("feed_items")
+    .select("*")
+    .eq("season_challenge_id", id)
+    .eq("type", "nudge")
+    .order("release_offset_days", { ascending: true });
+  return (data as FeedItem[]) ?? [];
+}
+
 /** All feed items in the camp (operators see scheduled/future items too). */
 export async function getFeedItems(): Promise<FeedItem[]> {
   const supabase = await createClient();

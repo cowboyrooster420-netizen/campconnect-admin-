@@ -1,23 +1,22 @@
-import { getFeedItems, getSeasonChallenges } from "@/lib/data";
+import { getFeedItems } from "@/lib/data";
 import { FEED_TYPE_META } from "@/lib/types";
 import FeedComposer from "./composer";
 import DeleteFeedButton from "./delete-button";
 
 export default async function FeedPage() {
-  const [items, season] = await Promise.all([getFeedItems(), getSeasonChallenges()]);
-  const challenges = season.map((c) => ({ id: c.id, title: c.template?.title ?? "Challenge" }));
+  const items = await getFeedItems();
   const now = Date.now();
 
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="mb-1 text-2xl font-bold text-ink">Feed</h1>
       <p className="mb-6 text-sm text-ink/60">
-        Your camp channel. Drop a counselor <strong>nudge</strong> mid-challenge
-        (schedule it for a few days out) or post an announcement — challenge and
-        wrap-up videos appear here automatically.
+        Your camp channel. Challenge videos, nudges, and wrap-ups appear here
+        automatically (set those up on each <strong>challenge</strong>). Post
+        standalone announcements below.
       </p>
 
-      <FeedComposer challenges={challenges} />
+      <FeedComposer />
 
       {items.length === 0 ? (
         <p className="rounded-2xl bg-white p-8 text-center text-sm text-ink/50 shadow-sm">

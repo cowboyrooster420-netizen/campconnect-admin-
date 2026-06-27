@@ -114,6 +114,7 @@ export interface FeedItem {
   media_path: string | null;
   media_type: MediaType | null;
   season_challenge_id: string | null;
+  release_offset_days: number | null;
   publish_at: string;
   created_at: string;
 }

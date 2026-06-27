@@ -171,17 +171,12 @@ export async function setChallengeStatus(
   revalidatePath("/");
 }
 
-/**
- * Create a feed item — a counselor 'nudge' (tied to a challenge) or an
- * 'announcement' (text/photo/video). Schedules via publishAt.
- */
+/** Create a standalone announcement (text/photo/video). Schedules via publishAt. */
 export async function createFeedItem(input: {
-  type: "nudge" | "announcement";
   title: string;
   caption: string | null;
   mediaPath: string | null;
   mediaType: "photo" | "video" | null;
-  seasonChallengeId: string | null;
   publishAt: string;
 }) {
   const ctx = await getOperatorContext();
@@ -190,17 +185,89 @@ export async function createFeedItem(input: {
 
   const { error } = await supabase.from("feed_items").insert({
     camp_id: ctx.camp.id,
-    type: input.type,
+    type: "announcement",
     title: input.title,
     caption: input.caption,
     media_path: input.mediaPath,
     media_type: input.mediaType,
-    season_challenge_id: input.type === "nudge" ? input.seasonChallengeId : null,
     publish_at: input.publishAt,
     created_by: ctx.userId,
   });
   if (error) throw new Error(error.message);
 
+  revalidatePath("/feed");
+}
+
+// A nudge's drop time = challenge release + N days. Hidden (far-future) until the
+// challenge has a release date.
+const FAR_FUTURE = "2999-01-01T00:00:00.000Z";
+function nudgePublishAt(releaseAt: string | null, offsetDays: number): string {
+  if (!releaseAt) return FAR_FUTURE;
+  return new Date(new Date(releaseAt).getTime() + offsetDays * 86_400_000).toISOString();
+}
+
+/** Set a challenge's release date (the anchor) and re-schedule all its nudges. */
+export async function setChallengeReleaseDate(challengeId: string, isoDate: string | null) {
+  const ctx = await getOperatorContext();
+  if (!ctx) throw new Error("Not authorized");
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("season_challenges")
+    .update({ release_at: isoDate })
+    .eq("id", challengeId);
+  if (error) throw new Error(error.message);
+
+  const { data: nudges } = await supabase
+    .from("feed_items")
+    .select("id, release_offset_days")
+    .eq("season_challenge_id", challengeId)
+    .eq("type", "nudge");
+  for (const n of nudges ?? []) {
+    await supabase
+      .from("feed_items")
+      .update({ publish_at: nudgePublishAt(isoDate, n.release_offset_days ?? 0) })
+      .eq("id", n.id);
+  }
+
+  revalidatePath(`/challenges/${challengeId}`);
+  revalidatePath("/feed");
+  revalidatePath("/challenges");
+}
+
+/** Add a counselor nudge to a challenge, scheduled N days after its release. */
+export async function createNudge(input: {
+  challengeId: string;
+  title: string;
+  caption: string | null;
+  mediaPath: string;
+  offsetDays: number;
+}) {
+  const ctx = await getOperatorContext();
+  if (!ctx?.camp) throw new Error("No camp assigned");
+  const supabase = await createClient();
+
+  const { data: ch } = await supabase
+    .from("season_challenges")
+    .select("release_at")
+    .eq("id", input.challengeId)
+    .single();
+
+  const { error } = await supabase.from("feed_items").insert({
+    camp_id: ctx.camp.id,
+    type: "nudge",
+    title: input.title,
+    caption: input.caption,
+    media_path: input.mediaPath,
+    media_type: "video",
+    season_challenge_id: input.challengeId,
+    release_offset_days: input.offsetDays,
+    publish_at: nudgePublishAt(ch?.release_at ?? null, input.offsetDays),
+    created_by: ctx.userId,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/challenges/${input.challengeId}`);
   revalidatePath("/feed");
 }
 
