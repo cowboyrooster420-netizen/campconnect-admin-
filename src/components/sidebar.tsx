@@ -31,7 +31,7 @@ export default function Sidebar({
             ⛺
           </span>
           <div>
-            <p className="text-sm font-bold leading-tight text-ink">CampConnect</p>
+            <p className="text-sm font-bold leading-tight text-ink">Campfire</p>
             <p className="text-xs text-ink/50">{campName}</p>
           </div>
         </div>

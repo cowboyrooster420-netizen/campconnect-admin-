@@ -1,4 +1,4 @@
-# CampConnect — Operator Console
+# Campfire — Operator Console
 
 The web dashboard camp operators use to run the year-round engagement loop:
 schedule challenges, review camper submissions, and award badges. Pairs with the

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CampConnect Operator",
+  title: "Campfire Operator",
   description: "Schedule challenges, review submissions, and award badges.",
 };
 
