@@ -102,6 +102,38 @@ export async function addChallengeAction(formData: FormData) {
   await addChallenge(templateId);
 }
 
+/**
+ * Save the counselor video for a challenge. `value` is either:
+ *   - a storage path in the `counselor-videos` bucket (uploaded from the client), or
+ *   - a full external URL (e.g. a YouTube/Vimeo link the operator pasted), or
+ *   - null to clear it.
+ * The iOS app resolves a bare path into a signed URL at view time.
+ */
+export async function setCounselorVideo(
+  challengeId: string,
+  value: string | null
+) {
+  const ctx = await getOperatorContext();
+  if (!ctx) throw new Error("Not authorized");
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("season_challenges")
+    .update({ counselor_video_url: value })
+    .eq("id", challengeId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/challenges");
+}
+
+/** Form-action wrapper for pasting an external video URL. */
+export async function setCounselorVideoUrlAction(formData: FormData) {
+  const challengeId = String(formData.get("challengeId") ?? "");
+  const url = String(formData.get("videoUrl") ?? "").trim();
+  if (!challengeId) return;
+  await setCounselorVideo(challengeId, url || null);
+}
+
 export async function setChallengeStatus(
   challengeId: string,
   status: "scheduled" | "active" | "closed"
