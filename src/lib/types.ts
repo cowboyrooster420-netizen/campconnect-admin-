@@ -102,7 +102,8 @@ export function describeBadgeCriteria(c: BadgeCriteria | null): string | null {
   }
 }
 
-export type FeedItemType = "challenge" | "wrap_up" | "memory" | "announcement";
+export type FeedItemType = "challenge" | "wrap_up" | "nudge" | "memory" | "announcement";
+export type MediaType = "photo" | "video";
 
 export interface FeedItem {
   id: string;
@@ -111,6 +112,7 @@ export interface FeedItem {
   title: string;
   caption: string | null;
   media_path: string | null;
+  media_type: MediaType | null;
   season_challenge_id: string | null;
   publish_at: string;
   created_at: string;
@@ -119,6 +121,7 @@ export interface FeedItem {
 export const FEED_TYPE_META: Record<FeedItemType, { label: string; emoji: string }> = {
   challenge: { label: "Challenge", emoji: "🎬" },
   wrap_up: { label: "Wrap-up", emoji: "🏁" },
+  nudge: { label: "Nudge", emoji: "👋" },
   memory: { label: "Camp memory", emoji: "📼" },
   announcement: { label: "Announcement", emoji: "📣" },
 };

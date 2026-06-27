@@ -5,10 +5,15 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createFeedItem } from "@/app/(dashboard)/actions";
 
-export default function FeedComposer() {
+export default function FeedComposer({
+  challenges,
+}: {
+  challenges: { id: string; title: string }[];
+}) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
-  const [type, setType] = useState<"memory" | "announcement">("memory");
+  const [type, setType] = useState<"nudge" | "announcement">("nudge");
+  const [challengeId, setChallengeId] = useState("");
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -16,15 +21,25 @@ export default function FeedComposer() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function reset() {
+    setTitle("");
+    setCaption("");
+    setFile(null);
+    setChallengeId("");
+    setPublishAt("");
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
   async function submit() {
-    if (!title.trim()) {
-      setError("Give it a title.");
-      return;
-    }
+    if (!title.trim()) return setError("Give it a title.");
+    if (type === "nudge" && !challengeId) return setError("Pick the challenge this nudge is about.");
+    if (type === "nudge" && !file) return setError("A nudge needs a counselor video.");
+
     setBusy(true);
     setError(null);
     try {
       let mediaPath: string | null = null;
+      let mediaType: "photo" | "video" | null = null;
       if (file) {
         const supabase = createClient();
         const ext = file.name.split(".").pop()?.toLowerCase() || "mov";
@@ -34,6 +49,7 @@ export default function FeedComposer() {
           .upload(path, file, { upsert: true, contentType: file.type });
         if (upErr) throw new Error(upErr.message);
         mediaPath = path;
+        mediaType = file.type.startsWith("image/") ? "photo" : "video";
       }
 
       await createFeedItem({
@@ -41,14 +57,12 @@ export default function FeedComposer() {
         title: title.trim(),
         caption: caption.trim() || null,
         mediaPath,
+        mediaType,
+        seasonChallengeId: type === "nudge" ? challengeId : null,
         publishAt: publishAt ? new Date(publishAt).toISOString() : new Date().toISOString(),
       });
 
-      setTitle("");
-      setCaption("");
-      setFile(null);
-      setPublishAt("");
-      if (fileInput.current) fileInput.current.value = "";
+      reset();
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to post");
@@ -60,24 +74,42 @@ export default function FeedComposer() {
   return (
     <div className="mb-8 space-y-3 rounded-2xl bg-white p-5 shadow-sm">
       <div className="flex gap-2">
-        {(["memory", "announcement"] as const).map((t) => (
+        {(["nudge", "announcement"] as const).map((t) => (
           <button
             key={t}
             type="button"
-            onClick={() => setType(t)}
+            onClick={() => {
+              setType(t);
+              setError(null);
+            }}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
               type === t ? "bg-pine text-white" : "bg-ink/5 text-ink/60"
             }`}
           >
-            {t === "memory" ? "📼 Camp memory" : "📣 Announcement"}
+            {t === "nudge" ? "👋 Counselor nudge" : "📣 Announcement"}
           </button>
         ))}
       </div>
 
+      {type === "nudge" && (
+        <select
+          value={challengeId}
+          onChange={(e) => setChallengeId(e.target.value)}
+          className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
+        >
+          <option value="">Which challenge is this nudge about?…</option>
+          {challenges.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
+      )}
+
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Title (e.g. Remember the lake?)"
+        placeholder={type === "nudge" ? "Prompt (e.g. Done the Camp Song one yet?)" : "Title"}
         className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
       />
       <textarea
@@ -89,10 +121,13 @@ export default function FeedComposer() {
       />
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
+        <label className="text-xs text-ink/60">
+          {type === "nudge" ? "Counselor video:" : "Photo or video (optional):"}
+        </label>
         <input
           ref={fileInput}
           type="file"
-          accept="video/*"
+          accept={type === "nudge" ? "video/*" : "image/*,video/*"}
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="text-xs text-ink/60"
         />
@@ -104,7 +139,7 @@ export default function FeedComposer() {
             onChange={(e) => setPublishAt(e.target.value)}
             className="rounded-lg border border-ink/15 px-2 py-1"
           />
-          <span className="text-xs text-ink/40">(blank = now; future = scheduled)</span>
+          <span className="text-xs text-ink/40">(blank = now; future = scheduled drop)</span>
         </label>
       </div>
 

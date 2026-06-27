@@ -121,6 +121,7 @@ export async function setChallengeVideo(
         title,
         caption: kind === "counselor" ? "New challenge unlocked" : "Challenge wrap-up",
         media_path: value,
+        media_type: "video",
         season_challenge_id: challengeId,
         created_by: ctx.userId,
         publish_at: new Date().toISOString(),
@@ -170,12 +171,17 @@ export async function setChallengeStatus(
   revalidatePath("/");
 }
 
-/** Create a feed item (camp memory or announcement). Schedules via publishAt. */
+/**
+ * Create a feed item — a counselor 'nudge' (tied to a challenge) or an
+ * 'announcement' (text/photo/video). Schedules via publishAt.
+ */
 export async function createFeedItem(input: {
-  type: "memory" | "announcement";
+  type: "nudge" | "announcement";
   title: string;
   caption: string | null;
   mediaPath: string | null;
+  mediaType: "photo" | "video" | null;
+  seasonChallengeId: string | null;
   publishAt: string;
 }) {
   const ctx = await getOperatorContext();
@@ -188,6 +194,8 @@ export async function createFeedItem(input: {
     title: input.title,
     caption: input.caption,
     media_path: input.mediaPath,
+    media_type: input.mediaType,
+    season_challenge_id: input.type === "nudge" ? input.seasonChallengeId : null,
     publish_at: input.publishAt,
     created_by: ctx.userId,
   });
