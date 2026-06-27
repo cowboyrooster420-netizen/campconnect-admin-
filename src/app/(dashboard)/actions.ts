@@ -208,8 +208,26 @@ export async function deleteFeedItem(id: string) {
   const ctx = await getOperatorContext();
   if (!ctx) throw new Error("Not authorized");
   const supabase = await createClient();
+
+  // Look up the item first so we can also clear a linked challenge video.
+  const { data: item } = await supabase
+    .from("feed_items")
+    .select("type, season_challenge_id")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase.from("feed_items").delete().eq("id", id);
   if (error) throw new Error(error.message);
+
+  // If it was a challenge's intro/wrap-up post, clear the video on the challenge too.
+  if (item?.season_challenge_id && (item.type === "challenge" || item.type === "wrap_up")) {
+    const column = item.type === "challenge" ? "counselor_video_url" : "recap_video_url";
+    await supabase
+      .from("season_challenges")
+      .update({ [column]: null })
+      .eq("id", item.season_challenge_id);
+    revalidatePath("/challenges");
+  }
   revalidatePath("/feed");
 }
 

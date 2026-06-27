@@ -121,16 +121,31 @@ export default function FeedComposer({
       />
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
-        <label className="text-xs text-ink/60">
-          {type === "nudge" ? "Counselor video:" : "Photo or video (optional):"}
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-pine/40 bg-pine/5 px-4 py-2 font-medium text-pine hover:bg-pine/10">
+          <span>⬆️</span>
+          <span className="max-w-[220px] truncate">
+            {file ? file.name : type === "nudge" ? "Choose counselor video" : "Choose photo or video"}
+          </span>
+          <input
+            ref={fileInput}
+            type="file"
+            accept={type === "nudge" ? "video/*" : "image/*,video/*"}
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="hidden"
+          />
         </label>
-        <input
-          ref={fileInput}
-          type="file"
-          accept={type === "nudge" ? "video/*" : "image/*,video/*"}
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="text-xs text-ink/60"
-        />
+        {file && (
+          <button
+            type="button"
+            onClick={() => {
+              setFile(null);
+              if (fileInput.current) fileInput.current.value = "";
+            }}
+            className="text-xs text-ink/40 hover:text-red-500"
+          >
+            clear
+          </button>
+        )}
         <label className="flex items-center gap-2 text-ink/60">
           Publish:
           <input

@@ -1,7 +1,7 @@
 import { getFeedItems, getSeasonChallenges } from "@/lib/data";
 import { FEED_TYPE_META } from "@/lib/types";
-import { deleteFeedItem } from "@/app/(dashboard)/actions";
 import FeedComposer from "./composer";
+import DeleteFeedButton from "./delete-button";
 
 export default async function FeedPage() {
   const [items, season] = await Promise.all([getFeedItems(), getSeasonChallenges()]);
@@ -28,7 +28,6 @@ export default async function FeedPage() {
           {items.map((item) => {
             const meta = FEED_TYPE_META[item.type];
             const scheduled = new Date(item.publish_at).getTime() > now;
-            const linked = item.type === "challenge" || item.type === "wrap_up";
             return (
               <li
                 key={item.id}
@@ -50,14 +49,7 @@ export default async function FeedPage() {
                     )}
                   </p>
                 </div>
-                {/* Challenge/wrap-up entries are managed on the Challenges page. */}
-                {!linked && (
-                  <form action={deleteFeedItem.bind(null, item.id)}>
-                    <button className="rounded-lg px-2 py-1 text-xs text-ink/40 hover:text-red-500">
-                      Delete
-                    </button>
-                  </form>
-                )}
+                <DeleteFeedButton id={item.id} />
               </li>
             );
           })}
