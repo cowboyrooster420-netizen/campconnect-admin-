@@ -24,6 +24,8 @@ export interface Profile {
   avatar_url: string | null;
   total_points: number;
   created_at: string;
+  // Populated via PostgREST embed on the campers roster (count of earned badges).
+  badge_awards?: { count: number }[];
 }
 
 export interface ChallengeTemplate {
@@ -69,7 +71,9 @@ export interface Submission {
 
 export type BadgeCriteria =
   | { type: "first_approval" }
-  | { type: "category_count"; category: ChallengeCategory; count: number };
+  | { type: "category_count"; category: ChallengeCategory; count: number }
+  | { type: "challenge"; template_id: string }
+  | { type: "signup" };
 
 export interface Badge {
   id: string;
@@ -90,6 +94,10 @@ export function describeBadgeCriteria(c: BadgeCriteria | null): string | null {
       return `Auto: ${c.count} approved ${CATEGORY_META[c.category].label.toLowerCase()} challenge${
         c.count === 1 ? "" : "s"
       }`;
+    case "challenge":
+      return "Auto: on completing this challenge";
+    case "signup":
+      return "Auto: on signing up";
   }
 }
 

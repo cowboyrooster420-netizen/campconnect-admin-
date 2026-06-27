@@ -28,7 +28,7 @@ export default async function CampersPage() {
               <tr>
                 <th className="px-5 py-3 font-medium">Name</th>
                 <th className="px-5 py-3 font-medium">Cabin</th>
-                <th className="px-5 py-3 text-right font-medium">Points</th>
+                <th className="px-5 py-3 text-right font-medium">Badges</th>
               </tr>
             </thead>
             <tbody>
@@ -39,7 +39,7 @@ export default async function CampersPage() {
                   </td>
                   <td className="px-5 py-3 text-ink/60">{c.cabin ?? "—"}</td>
                   <td className="px-5 py-3 text-right font-semibold text-pine">
-                    {c.total_points}
+                    {c.badge_awards?.[0]?.count ?? 0}
                   </td>
                 </tr>
               ))}

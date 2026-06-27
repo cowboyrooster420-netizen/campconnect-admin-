@@ -98,7 +98,7 @@ export async function getCampers(): Promise<Profile[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("*")
+    .select("*, badge_awards(count)")
     .eq("role", "camper")
     .order("display_name", { ascending: true });
   return (data as Profile[]) ?? [];
