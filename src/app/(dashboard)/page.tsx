@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getOverview } from "@/lib/data";
+import { getOperatorContext } from "@/lib/auth";
+import CountdownSetting from "./countdown-setting";
 
 export default async function OverviewPage() {
-  const stats = await getOverview();
+  const [stats, ctx] = await Promise.all([getOverview(), getOperatorContext()]);
 
   const cards = [
     { label: "Active challenges", value: stats.activeChallenges, href: "/challenges", icon: "🚩" },
@@ -30,6 +32,10 @@ export default async function OverviewPage() {
             <div className="text-sm text-ink/60">{c.label}</div>
           </Link>
         ))}
+      </div>
+
+      <div className="mt-6">
+        <CountdownSetting current={ctx?.camp?.session_start_date ?? null} />
       </div>
 
       {stats.pendingSubmissions > 0 && (

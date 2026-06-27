@@ -13,6 +13,7 @@ export interface Camp {
   logo_url: string | null;
   primary_color: string | null;
   season_year: number;
+  session_start_date: string | null;
 }
 
 export interface Profile {

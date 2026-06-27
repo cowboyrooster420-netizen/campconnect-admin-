@@ -171,6 +171,19 @@ export async function setChallengeStatus(
   revalidatePath("/");
 }
 
+/** Set the camp's next session start date (powers the camper countdown). */
+export async function setSessionStartDate(date: string | null) {
+  const ctx = await getOperatorContext();
+  if (!ctx?.camp) throw new Error("No camp assigned");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("camps")
+    .update({ session_start_date: date })
+    .eq("id", ctx.camp.id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+}
+
 /** Create a standalone announcement (text/photo/video). Schedules via publishAt. */
 export async function createFeedItem(input: {
   title: string;
