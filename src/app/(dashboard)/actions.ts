@@ -84,44 +84,6 @@ export async function addChallengeAction(formData: FormData) {
 }
 
 /**
- * Posts/updates a challenge's "new challenge" card in the feed. It carries the
- * intro video if one exists, otherwise it's a tappable text card. Visible while
- * the challenge is active; hidden (far-future) while scheduled; left as history
- * once closed.
- */
-async function syncChallengeIntroFeed(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  campId: string,
-  userId: string,
-  challengeId: string
-) {
-  const { data: ch } = await supabase
-    .from("season_challenges")
-    .select("status, counselor_video_url, template:challenge_templates(title)")
-    .eq("id", challengeId)
-    .single();
-  if (!ch) return;
-  if (ch.status === "closed") return; // keep its existing feed card as history
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const title = (ch as any).template?.title ?? "New challenge";
-  await supabase.from("feed_items").upsert(
-    {
-      camp_id: campId,
-      type: "challenge",
-      title,
-      caption: "New challenge — tap to start!",
-      media_path: ch.counselor_video_url,
-      media_type: ch.counselor_video_url ? "video" : null,
-      season_challenge_id: challengeId,
-      created_by: userId,
-      publish_at: ch.status === "active" ? new Date().toISOString() : FAR_FUTURE,
-    },
-    { onConflict: "season_challenge_id,type" }
-  );
-}
-
-/**
  * Save a challenge's intro ('counselor') or wrap-up ('recap') video. `value` is a
  * storage path in the `counselor-videos` bucket, an external URL, or null to clear.
  * Also syncs a shadow feed_item so the video shows in the camp feed.
@@ -142,11 +104,10 @@ export async function setChallengeVideo(
     .eq("id", challengeId);
   if (error) throw new Error(error.message);
 
-  if (kind === "counselor") {
-    // Intro feed card is managed centrally (carries the video if set; visible when active).
-    await syncChallengeIntroFeed(supabase, ctx.camp.id, ctx.userId, challengeId);
-  } else if (value) {
-    // Wrap-up: post/replace its feed card now.
+  // The video's feed card (type 'challenge' for intro, 'wrap_up' for recap).
+  // Uploading posts it to the feed now; clearing removes it.
+  const feedType = kind === "counselor" ? "challenge" : "wrap_up";
+  if (value) {
     const { data: ch } = await supabase
       .from("season_challenges")
       .select("template:challenge_templates(title)")
@@ -157,9 +118,9 @@ export async function setChallengeVideo(
     await supabase.from("feed_items").upsert(
       {
         camp_id: ctx.camp.id,
-        type: "wrap_up",
+        type: feedType,
         title,
-        caption: "Challenge wrap-up",
+        caption: kind === "counselor" ? "New challenge!" : "Challenge wrap-up",
         media_path: value,
         media_type: "video",
         season_challenge_id: challengeId,
@@ -169,12 +130,11 @@ export async function setChallengeVideo(
       { onConflict: "season_challenge_id,type" }
     );
   } else {
-    // Cleared wrap-up: remove its feed card.
     await supabase
       .from("feed_items")
       .delete()
       .eq("season_challenge_id", challengeId)
-      .eq("type", "wrap_up");
+      .eq("type", feedType);
   }
 
   revalidatePath("/challenges");
@@ -195,7 +155,7 @@ export async function setChallengeStatus(
   status: "scheduled" | "active" | "closed"
 ) {
   const ctx = await getOperatorContext();
-  if (!ctx?.camp) throw new Error("Not authorized");
+  if (!ctx) throw new Error("Not authorized");
   const supabase = await createClient();
 
   const patch: Record<string, unknown> = { status };
@@ -208,12 +168,7 @@ export async function setChallengeStatus(
     .eq("id", challengeId);
   if (error) throw new Error(error.message);
 
-  // Going live posts the challenge to the feed; scheduling hides it again.
-  await syncChallengeIntroFeed(supabase, ctx.camp.id, ctx.userId, challengeId);
-
   revalidatePath("/challenges");
-  revalidatePath(`/challenges/${challengeId}`);
-  revalidatePath("/feed");
   revalidatePath("/");
 }
 
