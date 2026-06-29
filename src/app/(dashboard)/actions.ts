@@ -105,8 +105,14 @@ export async function setChallengeVideo(
   if (error) throw new Error(error.message);
 
   // The video's feed card (type 'challenge' for intro, 'wrap_up' for recap).
-  // Uploading posts it to the feed now; clearing removes it.
+  // Delete-then-insert rather than upsert: the unique index is PARTIAL, so
+  // ON CONFLICT can't infer it (PostgREST can't name the index predicate).
   const feedType = kind === "counselor" ? "challenge" : "wrap_up";
+  await supabase
+    .from("feed_items")
+    .delete()
+    .eq("season_challenge_id", challengeId)
+    .eq("type", feedType);
   if (value) {
     const { data: ch } = await supabase
       .from("season_challenges")
@@ -115,26 +121,18 @@ export async function setChallengeVideo(
       .single();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const title = (ch as any)?.template?.title ?? "Challenge";
-    await supabase.from("feed_items").upsert(
-      {
-        camp_id: ctx.camp.id,
-        type: feedType,
-        title,
-        caption: kind === "counselor" ? "New challenge!" : "Challenge wrap-up",
-        media_path: value,
-        media_type: "video",
-        season_challenge_id: challengeId,
-        created_by: ctx.userId,
-        publish_at: new Date().toISOString(),
-      },
-      { onConflict: "season_challenge_id,type" }
-    );
-  } else {
-    await supabase
-      .from("feed_items")
-      .delete()
-      .eq("season_challenge_id", challengeId)
-      .eq("type", feedType);
+    const { error: feErr } = await supabase.from("feed_items").insert({
+      camp_id: ctx.camp.id,
+      type: feedType,
+      title,
+      caption: kind === "counselor" ? "New challenge!" : "Challenge wrap-up",
+      media_path: value,
+      media_type: "video",
+      season_challenge_id: challengeId,
+      created_by: ctx.userId,
+      publish_at: new Date().toISOString(),
+    });
+    if (feErr) throw new Error(feErr.message);
   }
 
   revalidatePath("/challenges");
