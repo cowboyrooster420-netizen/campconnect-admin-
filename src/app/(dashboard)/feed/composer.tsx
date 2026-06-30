@@ -12,6 +12,9 @@ export default function FeedComposer() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
+  const [badge, setBadge] = useState("");
+  const [actionLabel, setActionLabel] = useState("");
+  const [actionUrl, setActionUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [publishAt, setPublishAt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,11 +44,17 @@ export default function FeedComposer() {
         caption: caption.trim() || null,
         mediaPath,
         mediaType,
+        badgeLabel: badge.trim() || null,
+        actionLabel: actionLabel.trim() || null,
+        actionUrl: actionUrl.trim() || null,
         publishAt: publishAt ? new Date(publishAt).toISOString() : new Date().toISOString(),
       });
 
       setTitle("");
       setCaption("");
+      setBadge("");
+      setActionLabel("");
+      setActionUrl("");
       setFile(null);
       setPublishAt("");
       if (fileInput.current) fileInput.current.value = "";
@@ -61,18 +70,38 @@ export default function FeedComposer() {
     <div className="mb-8 space-y-3 rounded-2xl bg-white p-5 shadow-sm">
       <p className="text-sm font-semibold text-ink/70">📣 New announcement</p>
       <input
+        value={badge}
+        onChange={(e) => setBadge(e.target.value)}
+        placeholder='Badge (optional, e.g. "JUST POSTED", "TONIGHT · 8PM")'
+        className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
+      />
+      <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Title"
-        className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
+        placeholder="Headline"
+        className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm font-semibold"
       />
       <textarea
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
-        placeholder="Message (optional)"
+        placeholder="Blurb (optional)"
         rows={2}
         className="w-full rounded-lg border border-ink/15 px-3 py-2 text-sm"
       />
+      <div className="flex flex-wrap gap-2">
+        <input
+          value={actionLabel}
+          onChange={(e) => setActionLabel(e.target.value)}
+          placeholder='Button text (e.g. "Read this issue")'
+          className="flex-1 rounded-lg border border-ink/15 px-3 py-2 text-sm"
+        />
+        <input
+          value={actionUrl}
+          onChange={(e) => setActionUrl(e.target.value)}
+          placeholder="Button link (https://…)"
+          className="flex-1 rounded-lg border border-ink/15 px-3 py-2 text-sm"
+        />
+      </div>
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-pine/40 bg-pine/5 px-4 py-2 font-medium text-pine hover:bg-pine/10">
           <span>⬆️</span>

@@ -183,12 +183,15 @@ export async function setSessionStartDate(date: string | null) {
   revalidatePath("/");
 }
 
-/** Create a standalone announcement (text/photo/video). Schedules via publishAt. */
+/** Create a standalone announcement (immersive cover card). Schedules via publishAt. */
 export async function createFeedItem(input: {
   title: string;
   caption: string | null;
   mediaPath: string | null;
   mediaType: "photo" | "video" | null;
+  badgeLabel: string | null;
+  actionLabel: string | null;
+  actionUrl: string | null;
   publishAt: string;
 }) {
   const ctx = await getOperatorContext();
@@ -202,6 +205,9 @@ export async function createFeedItem(input: {
     caption: input.caption,
     media_path: input.mediaPath,
     media_type: input.mediaType,
+    badge_label: input.badgeLabel,
+    action_label: input.actionLabel,
+    action_url: input.actionUrl,
     publish_at: input.publishAt,
     created_by: ctx.userId,
   });
