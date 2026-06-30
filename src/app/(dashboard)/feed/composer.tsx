@@ -15,6 +15,7 @@ export default function FeedComposer() {
   const [badge, setBadge] = useState("");
   const [actionLabel, setActionLabel] = useState("");
   const [actionUrl, setActionUrl] = useState("");
+  const [scene, setScene] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [publishAt, setPublishAt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,6 +48,7 @@ export default function FeedComposer() {
         badgeLabel: badge.trim() || null,
         actionLabel: actionLabel.trim() || null,
         actionUrl: actionUrl.trim() || null,
+        scene,
         publishAt: publishAt ? new Date(publishAt).toISOString() : new Date().toISOString(),
       });
 
@@ -55,6 +57,7 @@ export default function FeedComposer() {
       setBadge("");
       setActionLabel("");
       setActionUrl("");
+      setScene(null);
       setFile(null);
       setPublishAt("");
       if (fileInput.current) fileInput.current.value = "";
@@ -102,6 +105,31 @@ export default function FeedComposer() {
           className="flex-1 rounded-lg border border-ink/15 px-3 py-2 text-sm"
         />
       </div>
+
+      {!file && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-ink/50">Background (used if no photo):</span>
+          {[
+            { id: null, label: "Auto", css: "linear-gradient(135deg,#5FA77F,#2E7D5B)" },
+            { id: "sunrise", label: "Sunrise", css: "linear-gradient(160deg,#FAD9A0,#E98C7A)" },
+            { id: "lake", label: "Lake", css: "linear-gradient(160deg,#F6B98A,#C76E9B)" },
+            { id: "dusk", label: "Dusk", css: "linear-gradient(160deg,#3A4E7A,#8E6A8E)" },
+          ].map((opt) => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => setScene(opt.id)}
+              className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium ${
+                scene === opt.id ? "border-pine text-pine ring-1 ring-pine" : "border-ink/15 text-ink/60"
+              }`}
+            >
+              <span className="h-4 w-4 rounded" style={{ backgroundImage: opt.css }} />
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-pine/40 bg-pine/5 px-4 py-2 font-medium text-pine hover:bg-pine/10">
           <span>⬆️</span>

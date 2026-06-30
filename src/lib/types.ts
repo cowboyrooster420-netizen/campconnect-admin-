@@ -119,6 +119,7 @@ export interface FeedItem {
   badge_label: string | null;
   action_label: string | null;
   action_url: string | null;
+  scene: string | null;
   publish_at: string;
   created_at: string;
 }

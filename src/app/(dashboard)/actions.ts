@@ -192,6 +192,7 @@ export async function createFeedItem(input: {
   badgeLabel: string | null;
   actionLabel: string | null;
   actionUrl: string | null;
+  scene: string | null;
   publishAt: string;
 }) {
   const ctx = await getOperatorContext();
@@ -208,6 +209,7 @@ export async function createFeedItem(input: {
     badge_label: input.badgeLabel,
     action_label: input.actionLabel,
     action_url: input.actionUrl,
+    scene: input.mediaPath ? null : input.scene,
     publish_at: input.publishAt,
     created_by: ctx.userId,
   });
